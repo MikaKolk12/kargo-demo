@@ -1,0 +1,94 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: PromotionTask
+metadata:
+  name: demo-promo-process
+  namespace: kargo-demo
+spec:
+  vars:
+  - name: gitopsRepo
+    value: https://github.com/MikaKolk12/kargo-demo
+  - name: web1DevRepo
+    value: ghcr.io/mikakolk12/dev/web1
+  - name: web2DevRepo
+    value: ghcr.io/mikakolk12/dev/web2
+  steps:
+  - uses: git-clone
+    config:
+      repoURL: ${{ vars.gitopsRepo }}
+      checkout:
+      - branch: main
+        path: ./src
+      - branch: stage/${{ ctx.stage }}
+        create: true
+        path: ./out
+
+  - uses: git-clear
+    config:
+      path: ./out
+
+  # dev: set image directly from dev registry
+  - as: update-dev
+    uses: kustomize-set-image
+    if: ${{ ctx.stage == "dev" }}
+    config:
+      path: ./src/base
+      images:
+      - image: ${{ vars.web1DevRepo }}
+        tag: ${{ imageFrom(vars.web1DevRepo).Tag }}
+      - image: ${{ vars.web2DevRepo }}
+        tag: ${{ imageFrom(vars.web2DevRepo).Tag }}
+
+  # acc: crane copy dev→acc with YY.M.sha tag, update kustomization
+  - uses: exec
+    if: ${{ ctx.stage == "acc" }}
+    config:
+      command: sh
+      args:
+      - -c
+      - |
+        SHA=${{ imageFrom(vars.web1DevRepo).Tag }}
+        TAG=$(date +%y.%-m).${SHA}
+        crane copy ghcr.io/mikakolk12/dev/web1:${SHA} ghcr.io/mikakolk12/acc/web1:${TAG} --all
+        crane copy ghcr.io/mikakolk12/dev/web2:${SHA} ghcr.io/mikakolk12/acc/web2:${TAG} --all
+        cd ./src/base
+        kustomize edit set image ghcr.io/mikakolk12/dev/web1=ghcr.io/mikakolk12/acc/web1:${TAG}
+        kustomize edit set image ghcr.io/mikakolk12/dev/web2=ghcr.io/mikakolk12/acc/web2:${TAG}
+
+  # prod: crane copy acc→prod with same YY.M.sha tag, update kustomization
+  - uses: exec
+    if: ${{ ctx.stage == "prod" }}
+    config:
+      command: sh
+      args:
+      - -c
+      - |
+        SHA=${{ imageFrom(vars.web1DevRepo).Tag }}
+        TAG=$(date +%y.%-m).${SHA}
+        crane copy ghcr.io/mikakolk12/acc/web1:${TAG} ghcr.io/mikakolk12/prod/web1:${TAG} --all
+        crane copy ghcr.io/mikakolk12/acc/web2:${TAG} ghcr.io/mikakolk12/prod/web2:${TAG} --all
+        cd ./src/base
+        kustomize edit set image ghcr.io/mikakolk12/dev/web1=ghcr.io/mikakolk12/prod/web1:${TAG}
+        kustomize edit set image ghcr.io/mikakolk12/dev/web2=ghcr.io/mikakolk12/prod/web2:${TAG}
+
+  - uses: kustomize-build
+    config:
+      path: ./src/stages/${{ ctx.stage }}
+      outPath: ./out
+
+  - as: commit
+    uses: git-commit
+    config:
+      path: ./out
+      message: "Promoted ${{ ctx.stage }}: web1 + web2"
+
+  - uses: git-push
+    config:
+      path: ./out
+
+  - uses: argocd-update
+    config:
+      apps:
+      - name: kargo-demo-${{ ctx.stage }}
+        sources:
+        - repoURL: ${{ vars.gitopsRepo }}
+          desiredRevision: ${{ task.outputs.commit.commit }}

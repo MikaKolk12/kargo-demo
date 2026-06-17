@@ -1,0 +1,16 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: kargo-demo
+  namespace: kargo-demo
+spec:
+  interval: 1m0s
+  subscriptions:
+  - image:
+      repoURL: ghcr.io/mikakolk12/dev/web1
+      imageSelectionStrategy: NewestBuild
+      discoveryLimit: 5
+  - image:
+      repoURL: ghcr.io/mikakolk12/dev/web2
+      imageSelectionStrategy: NewestBuild
+      discoveryLimit: 5

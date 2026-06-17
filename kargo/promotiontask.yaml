@@ -26,7 +26,7 @@ spec:
     config:
       path: ./out
 
-  # dev: set image directly from dev registry
+  # dev: set image tag directly from dev registry
   - as: update-dev
     uses: kustomize-set-image
     if: ${{ ctx.stage == "dev" }}
@@ -38,37 +38,57 @@ spec:
       - image: ${{ vars.web2DevRepo }}
         tag: ${{ imageFrom(vars.web2DevRepo).Tag }}
 
-  # acc: crane copy dev→acc with YY.M.sha tag, update kustomization
-  - uses: exec
+  # acc: copy dev→acc, update kustomization with acc registry path
+  - uses: oci-push
     if: ${{ ctx.stage == "acc" }}
     config:
-      command: sh
-      args:
-      - -c
-      - |
-        SHA=${{ imageFrom(vars.web1DevRepo).Tag }}
-        TAG=$(date +%y.%-m).${SHA}
-        crane copy ghcr.io/mikakolk12/dev/web1:${SHA} ghcr.io/mikakolk12/acc/web1:${TAG} --all
-        crane copy ghcr.io/mikakolk12/dev/web2:${SHA} ghcr.io/mikakolk12/acc/web2:${TAG} --all
-        cd ./src/base
-        kustomize edit set image ghcr.io/mikakolk12/dev/web1=ghcr.io/mikakolk12/acc/web1:${TAG}
-        kustomize edit set image ghcr.io/mikakolk12/dev/web2=ghcr.io/mikakolk12/acc/web2:${TAG}
+      srcRef: ghcr.io/mikakolk12/dev/web1:${{ imageFrom(vars.web1DevRepo).Tag }}
+      destRef: ghcr.io/mikakolk12/acc/web1:${{ imageFrom(vars.web1DevRepo).Tag }}
 
-  # prod: crane copy acc→prod with same YY.M.sha tag, update kustomization
-  - uses: exec
+  - uses: oci-push
+    if: ${{ ctx.stage == "acc" }}
+    config:
+      srcRef: ghcr.io/mikakolk12/dev/web2:${{ imageFrom(vars.web2DevRepo).Tag }}
+      destRef: ghcr.io/mikakolk12/acc/web2:${{ imageFrom(vars.web2DevRepo).Tag }}
+
+  - as: update-acc
+    uses: kustomize-set-image
+    if: ${{ ctx.stage == "acc" }}
+    config:
+      path: ./src/base
+      images:
+      - image: ${{ vars.web1DevRepo }}
+        newName: ghcr.io/mikakolk12/acc/web1
+        tag: ${{ imageFrom(vars.web1DevRepo).Tag }}
+      - image: ${{ vars.web2DevRepo }}
+        newName: ghcr.io/mikakolk12/acc/web2
+        tag: ${{ imageFrom(vars.web2DevRepo).Tag }}
+
+  # prod: copy acc→prod, update kustomization with prod registry path
+  - uses: oci-push
     if: ${{ ctx.stage == "prod" }}
     config:
-      command: sh
-      args:
-      - -c
-      - |
-        SHA=${{ imageFrom(vars.web1DevRepo).Tag }}
-        TAG=$(date +%y.%-m).${SHA}
-        crane copy ghcr.io/mikakolk12/acc/web1:${TAG} ghcr.io/mikakolk12/prod/web1:${TAG} --all
-        crane copy ghcr.io/mikakolk12/acc/web2:${TAG} ghcr.io/mikakolk12/prod/web2:${TAG} --all
-        cd ./src/base
-        kustomize edit set image ghcr.io/mikakolk12/dev/web1=ghcr.io/mikakolk12/prod/web1:${TAG}
-        kustomize edit set image ghcr.io/mikakolk12/dev/web2=ghcr.io/mikakolk12/prod/web2:${TAG}
+      srcRef: ghcr.io/mikakolk12/acc/web1:${{ imageFrom(vars.web1DevRepo).Tag }}
+      destRef: ghcr.io/mikakolk12/prod/web1:${{ imageFrom(vars.web1DevRepo).Tag }}
+
+  - uses: oci-push
+    if: ${{ ctx.stage == "prod" }}
+    config:
+      srcRef: ghcr.io/mikakolk12/acc/web2:${{ imageFrom(vars.web2DevRepo).Tag }}
+      destRef: ghcr.io/mikakolk12/prod/web2:${{ imageFrom(vars.web2DevRepo).Tag }}
+
+  - as: update-prod
+    uses: kustomize-set-image
+    if: ${{ ctx.stage == "prod" }}
+    config:
+      path: ./src/base
+      images:
+      - image: ${{ vars.web1DevRepo }}
+        newName: ghcr.io/mikakolk12/prod/web1
+        tag: ${{ imageFrom(vars.web1DevRepo).Tag }}
+      - image: ${{ vars.web2DevRepo }}
+        newName: ghcr.io/mikakolk12/prod/web2
+        tag: ${{ imageFrom(vars.web2DevRepo).Tag }}
 
   - uses: kustomize-build
     config:

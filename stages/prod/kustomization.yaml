@@ -3,13 +3,21 @@ kind: Kustomization
 
 resources:
 - ../../base
-- configmap.yaml
+- configmap-web1.yaml
+- configmap-web2.yaml
 
 patches:
 - target:
     kind: Service
-    name: kargo-demo
+    name: kargo-demo-web1
   patch: |-
     - op: replace
       path: /spec/ports/0/nodePort
       value: 32082
+- target:
+    kind: Service
+    name: kargo-demo-web2
+  patch: |-
+    - op: replace
+      path: /spec/ports/0/nodePort
+      value: 32085

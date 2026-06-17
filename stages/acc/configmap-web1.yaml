@@ -1,17 +1,12 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: kargo-demo-content
+  name: kargo-demo-web1-content
 data:
-  index.html: |-
+  index.html: |
     <!DOCTYPE html>
     <html>
-    <head>
-    <title>test</title>
-    </head>
     <body>
-
-    <h1>test</h1>
-
+      <h1>acc - web1</h1>
     </body>
     </html>

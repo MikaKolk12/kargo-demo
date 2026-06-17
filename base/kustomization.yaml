@@ -2,5 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-- deploy.yaml
-- service.yaml
+- deploy-web1.yaml
+- deploy-web2.yaml
+- service-web1.yaml
+- service-web2.yaml

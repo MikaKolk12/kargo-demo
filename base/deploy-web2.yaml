@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kargo-demo
+  name: kargo-demo-web2
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: kargo-demo
+      app: kargo-demo-web2
   template:
     metadata:
       labels:
-        app: kargo-demo
+        app: kargo-demo-web2
     spec:
       containers:
-      - name: nginx 
-        image: public.ecr.aws/nginx/nginx:placeholder
+      - name: nginx
+        image: ghcr.io/mikakolk12/dev/web2
         volumeMounts:
         - name: content
           mountPath: /usr/share/nginx/html
@@ -22,4 +22,4 @@ spec:
       volumes:
       - name: content
         configMap:
-          name: kargo-demo-content
+          name: kargo-demo-web2-content

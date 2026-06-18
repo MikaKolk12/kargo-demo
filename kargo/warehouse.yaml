@@ -7,10 +7,10 @@ spec:
   interval: 1m0s
   subscriptions:
   - image:
-      repoURL: ghcr.io/mikakolk12/dev/web1
+      repoURL: ghcr.io/mikakolk12/web1
       imageSelectionStrategy: NewestBuild
-      discoveryLimit: 5
+      discoveryLimit: 10
   - image:
-      repoURL: ghcr.io/mikakolk12/dev/web2
+      repoURL: ghcr.io/mikakolk12/web2
       imageSelectionStrategy: NewestBuild
-      discoveryLimit: 5
+      discoveryLimit: 10

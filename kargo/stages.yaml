@@ -28,8 +28,11 @@ spec:
       kind: Warehouse
       name: kargo-demo
     sources:
+      # Feature flow: freight verified in dev
+      # Hotfix flow: direct from warehouse (bypasses dev)
       stages:
       - dev
+      direct: true
   promotionTemplate:
     spec:
       steps:
@@ -48,8 +51,11 @@ spec:
       kind: Warehouse
       name: kargo-demo
     sources:
+      # Feature flow: freight verified in acc
+      # Hotfix flow: direct from warehouse (bypasses dev + acc)
       stages:
       - acc
+      direct: true
   promotionTemplate:
     spec:
       steps:

@@ -7,10 +7,10 @@ spec:
   vars:
   - name: gitopsRepo
     value: https://github.com/MikaKolk12/kargo-demo
-  - name: web1DevRepo
-    value: ghcr.io/mikakolk12/dev/web1
-  - name: web2DevRepo
-    value: ghcr.io/mikakolk12/dev/web2
+  - name: web1Repo
+    value: ghcr.io/mikakolk12/web1
+  - name: web2Repo
+    value: ghcr.io/mikakolk12/web2
   steps:
   - uses: git-clone
     config:
@@ -26,69 +26,14 @@ spec:
     config:
       path: ./out
 
-  # dev: set image tag directly from dev registry
-  - as: update-dev
-    uses: kustomize-set-image
-    if: ${{ ctx.stage == "dev" }}
+  - uses: kustomize-set-image
     config:
-      path: ./src/base
+      path: ./src/stages/${{ ctx.stage }}
       images:
-      - image: ${{ vars.web1DevRepo }}
-        tag: ${{ imageFrom(vars.web1DevRepo).Tag }}
-      - image: ${{ vars.web2DevRepo }}
-        tag: ${{ imageFrom(vars.web2DevRepo).Tag }}
-
-  # acc: copy dev→acc, update kustomization with acc registry path
-  - uses: oci-push
-    if: ${{ ctx.stage == "acc" }}
-    config:
-      srcRef: ghcr.io/mikakolk12/dev/web1:${{ imageFrom(vars.web1DevRepo).Tag }}
-      destRef: ghcr.io/mikakolk12/acc/web1:${{ imageFrom(vars.web1DevRepo).Tag }}
-
-  - uses: oci-push
-    if: ${{ ctx.stage == "acc" }}
-    config:
-      srcRef: ghcr.io/mikakolk12/dev/web2:${{ imageFrom(vars.web2DevRepo).Tag }}
-      destRef: ghcr.io/mikakolk12/acc/web2:${{ imageFrom(vars.web2DevRepo).Tag }}
-
-  - as: update-acc
-    uses: kustomize-set-image
-    if: ${{ ctx.stage == "acc" }}
-    config:
-      path: ./src/base
-      images:
-      - image: ${{ vars.web1DevRepo }}
-        newName: ghcr.io/mikakolk12/acc/web1
-        tag: ${{ imageFrom(vars.web1DevRepo).Tag }}
-      - image: ${{ vars.web2DevRepo }}
-        newName: ghcr.io/mikakolk12/acc/web2
-        tag: ${{ imageFrom(vars.web2DevRepo).Tag }}
-
-  # prod: copy acc→prod, update kustomization with prod registry path
-  - uses: oci-push
-    if: ${{ ctx.stage == "prod" }}
-    config:
-      srcRef: ghcr.io/mikakolk12/acc/web1:${{ imageFrom(vars.web1DevRepo).Tag }}
-      destRef: ghcr.io/mikakolk12/prod/web1:${{ imageFrom(vars.web1DevRepo).Tag }}
-
-  - uses: oci-push
-    if: ${{ ctx.stage == "prod" }}
-    config:
-      srcRef: ghcr.io/mikakolk12/acc/web2:${{ imageFrom(vars.web2DevRepo).Tag }}
-      destRef: ghcr.io/mikakolk12/prod/web2:${{ imageFrom(vars.web2DevRepo).Tag }}
-
-  - as: update-prod
-    uses: kustomize-set-image
-    if: ${{ ctx.stage == "prod" }}
-    config:
-      path: ./src/base
-      images:
-      - image: ${{ vars.web1DevRepo }}
-        newName: ghcr.io/mikakolk12/prod/web1
-        tag: ${{ imageFrom(vars.web1DevRepo).Tag }}
-      - image: ${{ vars.web2DevRepo }}
-        newName: ghcr.io/mikakolk12/prod/web2
-        tag: ${{ imageFrom(vars.web2DevRepo).Tag }}
+      - image: ${{ vars.web1Repo }}
+        tag: ${{ imageFrom(vars.web1Repo).Tag }}
+      - image: ${{ vars.web2Repo }}
+        tag: ${{ imageFrom(vars.web2Repo).Tag }}
 
   - uses: kustomize-build
     config:
@@ -99,7 +44,7 @@ spec:
     uses: git-commit
     config:
       path: ./out
-      message: "Promoted ${{ ctx.stage }}: web1 + web2"
+      message: "Promote ${{ ctx.stage }}: ${{ imageFrom(vars.web1Repo).Tag }}"
 
   - uses: git-push
     config:

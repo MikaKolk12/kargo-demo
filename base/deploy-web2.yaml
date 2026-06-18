@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: ghcr.io/mikakolk12/dev/web2
+        image: ghcr.io/mikakolk12/web2
         volumeMounts:
         - name: content
           mountPath: /usr/share/nginx/html

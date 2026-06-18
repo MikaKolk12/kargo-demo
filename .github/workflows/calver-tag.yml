@@ -1,142 +1,66 @@
-name: CalVer Tag on Acc Promotion
-
-# Runs when Kargo promotes freight to the acc stage.
-# For feature flows (sha-* tags): adds a CalVer image tag, updates the stage
-# manifests, and creates a GitHub tag in kargo-demo-2.
-# For hotfix flows (hotfix-* tags): no-op.
-#
-# Required secret: CALVER_PAT — GitHub PAT with repo + write:packages scopes
-# so it can create tags in kargo-demo-2 and re-push images to GHCR.
+name: CalVer Tag
 
 on:
-  push:
-    branches: ['stage/acc']
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: 'Source image tag (sha-*)'
+        required: true
+        type: string
 
 jobs:
   calver:
-    # Skip commits made by this workflow itself to prevent an infinite loop.
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
 
     steps:
-    - name: Checkout stage/acc
-      uses: actions/checkout@v4
-      with:
-        ref: stage/acc
-        token: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Set lowercase owner
       id: owner
       run: echo "value=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-    - name: Extract image tag from rendered manifests
-      id: extract
-      run: |
-        TAG=$(grep -rh "image: ghcr.io/${{ steps.owner.outputs.value }}/web1:" . \
-          --include='*.yaml' 2>/dev/null \
-          | head -1 \
-          | sed "s|.*web1:||" \
-          | tr -d ' "')
-        echo "tag=$TAG" >> $GITHUB_OUTPUT
-
-        if [[ "$TAG" == hotfix-* ]]; then
-          echo "flow=hotfix" >> $GITHUB_OUTPUT
-        elif [[ "$TAG" == sha-* ]]; then
-          echo "flow=feature" >> $GITHUB_OUTPUT
-        else
-          echo "flow=unknown" >> $GITHUB_OUTPUT
-          echo "::warning::Unexpected image tag format: $TAG — skipping CalVer"
-        fi
-
-    - name: Skip if hotfix or unknown
-      if: steps.extract.outputs.flow != 'feature'
-      run: |
-        echo "Tag is '${{ steps.extract.outputs.tag }}' (flow=${{ steps.extract.outputs.flow }}) — nothing to do."
-
-    - name: Compute CalVer (YY.M.N)
-      if: steps.extract.outputs.flow == 'feature'
+    - name: Compute CalVer
       id: calver
       run: |
         YY=$(date -u +%y)
         M=$(date -u +%-m)
-        OWNER="${{ github.repository_owner }}"
-
-        # Count existing tags for this month to determine next N
-        EXISTING=$(gh api "repos/${OWNER}/kargo-demo-2/git/refs/tags" \
-          --jq '.[].ref' 2>/dev/null \
-          | grep "^refs/tags/${YY}\.${M}\." \
-          | wc -l | tr -d ' ' || echo "0")
+        EXISTING=$(gh api "repos/${{ github.repository_owner }}/kargo-demo-2/git/refs/tags" \
+          --jq "[.[].ref | select(startswith(\"refs/tags/${YY}.${M}.\"))] | length" \
+          2>/dev/null || echo "0")
         N=$((EXISTING + 1))
-
-        CALVER="${YY}.${M}.${N}"
-        echo "calver=$CALVER" >> $GITHUB_OUTPUT
-        echo "Computed CalVer: $CALVER (existing tags this month: $EXISTING)"
+        echo "value=${YY}.${M}.${N}" >> $GITHUB_OUTPUT
+        echo "CalVer: ${YY}.${M}.${N} (existing this month: ${EXISTING})"
       env:
         GH_TOKEN: ${{ secrets.CALVER_PAT }}
 
-    - name: Log in to GHCR
-      if: steps.extract.outputs.flow == 'feature'
+    - name: Login to GHCR
       uses: docker/login-action@v3
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.CALVER_PAT }}
 
-    - name: Retag images with CalVer in GHCR
-      if: steps.extract.outputs.flow == 'feature'
+    - name: Retag images with CalVer
       run: |
         OWNER="${{ steps.owner.outputs.value }}"
-        SHA_TAG="${{ steps.extract.outputs.tag }}"
-        CALVER="${{ steps.calver.outputs.calver }}"
+        SHA_TAG="${{ inputs.imageTag }}"
+        CALVER="${{ steps.calver.outputs.value }}"
         for APP in web1 web2; do
           docker pull "ghcr.io/${OWNER}/${APP}:${SHA_TAG}"
           docker tag  "ghcr.io/${OWNER}/${APP}:${SHA_TAG}" "ghcr.io/${OWNER}/${APP}:${CALVER}"
           docker push "ghcr.io/${OWNER}/${APP}:${CALVER}"
         done
 
-    - name: Update stage/acc manifests to use CalVer
-      if: steps.extract.outputs.flow == 'feature'
+    - name: Create release tag in kargo-demo-2
       run: |
-        OWNER="${{ steps.owner.outputs.value }}"
-        SHA_TAG="${{ steps.extract.outputs.tag }}"
-        CALVER="${{ steps.calver.outputs.calver }}"
-        find . -name '*.yaml' -exec \
-          sed -i "s|ghcr.io/${OWNER}/web1:${SHA_TAG}|ghcr.io/${OWNER}/web1:${CALVER}|g" {} \;
-        find . -name '*.yaml' -exec \
-          sed -i "s|ghcr.io/${OWNER}/web2:${SHA_TAG}|ghcr.io/${OWNER}/web2:${CALVER}|g" {} \;
-
-    - name: Commit and push CalVer update
-      if: steps.extract.outputs.flow == 'feature'
-      run: |
-        git config user.name  "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git add .
-        git diff --staged --quiet \
-          || git commit -m "[calver] acc → ${{ steps.calver.outputs.calver }}"
-        git push
-
-    - name: Create GitHub tag in kargo-demo-2
-      if: steps.extract.outputs.flow == 'feature'
-      run: |
-        CALVER="${{ steps.calver.outputs.calver }}"
-        OWNER="${{ github.repository_owner }}"
-        # Tag the HEAD of kargo-demo-2 main branch
-        SHA=$(gh api "repos/${OWNER}/kargo-demo-2/git/refs/heads/main" --jq '.object.sha')
-        gh api "repos/${OWNER}/kargo-demo-2/git/refs" \
+        CALVER="${{ steps.calver.outputs.value }}"
+        SHA=$(gh api "repos/${{ github.repository_owner }}/kargo-demo-2/git/refs/heads/main" \
+          --jq '.object.sha')
+        gh api "repos/${{ github.repository_owner }}/kargo-demo-2/git/refs" \
           --method POST \
           --field ref="refs/tags/${CALVER}" \
           --field sha="${SHA}"
         echo "Created tag ${CALVER} in kargo-demo-2 at ${SHA}"
       env:
         GH_TOKEN: ${{ secrets.CALVER_PAT }}
-
-    - name: Summary
-      if: steps.extract.outputs.flow == 'feature'
-      run: |
-        echo "### CalVer tagging complete" >> $GITHUB_STEP_SUMMARY
-        echo "- **CalVer:** \`${{ steps.calver.outputs.calver }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- **SHA tag:** \`${{ steps.extract.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- **GitHub tag created in kargo-demo-2:** \`${{ steps.calver.outputs.calver }}\`" >> $GITHUB_STEP_SUMMARY

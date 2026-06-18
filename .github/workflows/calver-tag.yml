@@ -56,12 +56,16 @@ jobs:
     - name: Create release tag in kargo-demo-2
       run: |
         CALVER="${{ steps.calver.outputs.value }}"
-        SHA=$(gh api "repos/${{ github.repository_owner }}/kargo-demo-2/git/refs/heads/main" \
-          --jq '.object.sha')
+        # Extract the 7-char SHA from the image tag (sha-abc1234 → abc1234)
+        SHORT_SHA="${{ inputs.imageTag }}"
+        SHORT_SHA="${SHORT_SHA#sha-}"
+        # Resolve the full commit SHA from the short SHA
+        SHA=$(gh api "repos/${{ github.repository_owner }}/kargo-demo-2/commits/${SHORT_SHA}" \
+          --jq '.sha')
         gh api "repos/${{ github.repository_owner }}/kargo-demo-2/git/refs" \
           --method POST \
           --field ref="refs/tags/${CALVER}" \
           --field sha="${SHA}"
-        echo "Created tag ${CALVER} in kargo-demo-2 at ${SHA}"
+        echo "Created tag ${CALVER} in kargo-demo-2 at ${SHA} (from image tag ${{ inputs.imageTag }})"
       env:
         GH_TOKEN: ${{ secrets.CALVER_PAT }}

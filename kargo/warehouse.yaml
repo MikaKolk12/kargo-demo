@@ -6,11 +6,15 @@ metadata:
 spec:
   interval: 1m0s
   subscriptions:
+  - git:
+      repoURL: https://github.com/MikaKolk12/kargo-demo-2
+      branch: main
+      commitSelectionStrategy: NewestFromBranch
   - image:
       repoURL: ghcr.io/mikakolk12/web1
       imageSelectionStrategy: NewestBuild
-      discoveryLimit: 10
+      discoveryLimit: 3
   - image:
       repoURL: ghcr.io/mikakolk12/web2
       imageSelectionStrategy: NewestBuild
-      discoveryLimit: 10
+      discoveryLimit: 3

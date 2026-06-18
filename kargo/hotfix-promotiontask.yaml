@@ -52,10 +52,3 @@ spec:
     config:
       path: ./out
 
-  - uses: argocd-update
-    config:
-      apps:
-      - name: kargo-demo-${{ vars.deployStage }}
-        sources:
-        - repoURL: ${{ vars.gitopsRepo }}
-          desiredRevision: ${{ task.outputs.commit.commit }}

@@ -8,16 +8,13 @@ spec:
   - list:
       elements:
       - stage: dev
-        authorizedStage: kargo-demo:dev
       - stage: acc
-        authorizedStage: kargo-demo:*
       - stage: prod
-        authorizedStage: kargo-demo:*
   template:
     metadata:
       name: kargo-demo-{{stage}}
       annotations:
-        kargo.akuity.io/authorized-stage: "{{authorizedStage}}"
+        kargo.akuity.io/authorized-stage: kargo-demo:{{stage}}
     spec:
       project: default
       source:
@@ -28,5 +25,6 @@ spec:
         server: https://kubernetes.default.svc
         namespace: kargo-demo-{{stage}}
       syncPolicy:
+        automated: {}
         syncOptions:
         - CreateNamespace=true

@@ -13,8 +13,10 @@ spec:
   - image:
       repoURL: ghcr.io/mikakolk12/web1
       imageSelectionStrategy: NewestBuild
+      allowTags: ^sha-
       discoveryLimit: 3
   - image:
       repoURL: ghcr.io/mikakolk12/web2
       imageSelectionStrategy: NewestBuild
+      allowTags: ^sha-
       discoveryLimit: 3

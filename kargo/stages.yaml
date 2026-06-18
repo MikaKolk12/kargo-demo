@@ -3,6 +3,8 @@ kind: Stage
 metadata:
   name: dev
   namespace: kargo-demo
+  annotations:
+    kargo.akuity.io/color: green
 spec:
   requestedFreight:
   - origin:
@@ -22,6 +24,8 @@ kind: Stage
 metadata:
   name: acc
   namespace: kargo-demo
+  annotations:
+    kargo.akuity.io/color: yellow
 spec:
   requestedFreight:
   - origin:
@@ -42,6 +46,8 @@ kind: Stage
 metadata:
   name: prod
   namespace: kargo-demo
+  annotations:
+    kargo.akuity.io/color: red
 spec:
   requestedFreight:
   - origin:

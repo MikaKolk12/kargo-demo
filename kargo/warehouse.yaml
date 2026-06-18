@@ -31,14 +31,14 @@ spec:
   subscriptions:
   - git:
       repoURL: https://github.com/MikaKolk12/kargo-demo-2
-      commitSelectionStrategy: Semver
+      commitSelectionStrategy: SemVer
   - image:
       repoURL: ghcr.io/mikakolk12/web1
-      imageSelectionStrategy: Semver
+      imageSelectionStrategy: SemVer
       allowTags: ^\d+\.\d+\.\d+$
       discoveryLimit: 3
   - image:
       repoURL: ghcr.io/mikakolk12/web2
-      imageSelectionStrategy: Semver
+      imageSelectionStrategy: SemVer
       allowTags: ^\d+\.\d+\.\d+$
       discoveryLimit: 3

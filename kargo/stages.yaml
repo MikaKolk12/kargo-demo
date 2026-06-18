@@ -34,6 +34,11 @@ spec:
     sources:
       stages:
       - dev
+  - origin:
+      kind: Warehouse
+      name: kargo-demo-hotfix
+    sources:
+      direct: true
   promotionTemplate:
     spec:
       steps:
@@ -53,6 +58,12 @@ spec:
   - origin:
       kind: Warehouse
       name: kargo-demo
+    sources:
+      stages:
+      - acc
+  - origin:
+      kind: Warehouse
+      name: kargo-demo-hotfix
     sources:
       stages:
       - acc

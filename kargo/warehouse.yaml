@@ -20,3 +20,26 @@ spec:
       imageSelectionStrategy: NewestBuild
       allowTags: ^sha-
       discoveryLimit: 3
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: kargo-demo-hotfix
+  namespace: kargo-demo
+spec:
+  interval: 1m0s
+  subscriptions:
+  - git:
+      repoURL: https://github.com/MikaKolk12/kargo-demo-2
+      branch: main
+      commitSelectionStrategy: NewestFromBranch
+  - image:
+      repoURL: ghcr.io/mikakolk12/web1
+      imageSelectionStrategy: NewestBuild
+      allowTags: ^hotfix-
+      discoveryLimit: 3
+  - image:
+      repoURL: ghcr.io/mikakolk12/web2
+      imageSelectionStrategy: NewestBuild
+      allowTags: ^hotfix-
+      discoveryLimit: 3

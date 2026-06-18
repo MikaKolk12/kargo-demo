@@ -58,13 +58,23 @@ spec:
         - repoURL: ${{ vars.gitopsRepo }}
           desiredRevision: ${{ task.outputs.commit.commit }}
 
-  - uses: gha-dispatch-workflow
+  - uses: http
     if: ${{ ctx.stage == "acc" && imageFrom(vars.web1Repo).Tag startsWith "sha-" }}
     config:
-      repoURL: ${{ vars.gitopsRepo }}
-      workflow: calver-tag.yml
-      ref: main
-      token: ${{ secret("kargo-demo-repo").password }}
-      inputs:
-        imageTag: ${{ imageFrom(vars.web1Repo).Tag }}
-      waitForCompletion: true
+      method: POST
+      url: https://api.github.com/repos/MikaKolk12/kargo-demo/actions/workflows/calver-tag.yml/dispatches
+      headers:
+      - name: Authorization
+        value: Bearer ${{ secret("kargo-demo-repo").password }}
+      - name: Accept
+        value: application/vnd.github.v3+json
+      - name: Content-Type
+        value: application/json
+      body: |
+        ${{ quote({
+          "ref": "main",
+          "inputs": {
+            "imageTag": imageFrom(vars.web1Repo).Tag
+          }
+        }) }}
+      successExpression: response.status == 204

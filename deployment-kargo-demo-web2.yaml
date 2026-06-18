@@ -13,7 +13,7 @@ spec:
         app: kargo-demo-web2
     spec:
       containers:
-      - image: ghcr.io/mikakolk12/web2:sha-aa5f146
+      - image: ghcr.io/mikakolk12/web2:26.6.3
         name: nginx
         volumeMounts:
         - mountPath: /usr/share/nginx/html

@@ -31,9 +31,9 @@ spec:
       path: ./src/stages/${{ ctx.stage }}
       images:
       - image: ${{ vars.web1Repo }}
-        tag: ${{ imageFrom(vars.web1Repo, warehouse("kargo-demo")).Tag }}
+        tag: ${{ imageFrom(vars.web1Repo, warehouse('kargo-demo')).Tag }}
       - image: ${{ vars.web2Repo }}
-        tag: ${{ imageFrom(vars.web2Repo, warehouse("kargo-demo")).Tag }}
+        tag: ${{ imageFrom(vars.web2Repo, warehouse('kargo-demo')).Tag }}
 
   - uses: kustomize-build
     config:
@@ -44,7 +44,7 @@ spec:
     uses: git-commit
     config:
       path: ./out
-      message: "Promote ${{ ctx.stage }}: ${{ imageFrom(vars.web1Repo, warehouse("kargo-demo")).Tag }}"
+      message: "Promote ${{ ctx.stage }}: ${{ imageFrom(vars.web1Repo, warehouse('kargo-demo')).Tag }}"
 
   - uses: git-push
     config:
@@ -59,7 +59,7 @@ spec:
           desiredRevision: ${{ task.outputs.commit.commit }}
 
   - uses: http
-    if: ${{ ctx.stage == "dev" && imageFrom(vars.web1Repo, warehouse("kargo-demo")).Tag startsWith "sha-" }}
+    if: ${{ ctx.stage == "dev" && imageFrom(vars.web1Repo, warehouse('kargo-demo')).Tag startsWith "sha-" }}
     config:
       method: POST
       url: https://api.github.com/repos/MikaKolk12/kargo-demo/actions/workflows/calver-tag.yml/dispatches
@@ -74,7 +74,7 @@ spec:
         ${{ quote({
           "ref": "main",
           "inputs": {
-            "imageTag": imageFrom(vars.web1Repo, warehouse("kargo-demo")).Tag
+            "imageTag": imageFrom(vars.web1Repo, warehouse('kargo-demo')).Tag
           }
         }) }}
       successExpression: response.status == 204

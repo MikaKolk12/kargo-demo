@@ -33,9 +33,9 @@ spec:
       path: ./src/stages/${{ vars.deployStage }}
       images:
       - image: ${{ vars.web1Repo }}
-        tag: ${{ imageFrom(vars.web1Repo, warehouse("kargo-demo-hotfix")).Tag }}
+        tag: ${{ imageFrom(vars.web1Repo, warehouse('kargo-demo-hotfix')).Tag }}
       - image: ${{ vars.web2Repo }}
-        tag: ${{ imageFrom(vars.web2Repo, warehouse("kargo-demo-hotfix")).Tag }}
+        tag: ${{ imageFrom(vars.web2Repo, warehouse('kargo-demo-hotfix')).Tag }}
 
   - uses: kustomize-build
     config:
@@ -46,7 +46,7 @@ spec:
     uses: git-commit
     config:
       path: ./out
-      message: "Hotfix ${{ vars.deployStage }}: ${{ imageFrom(vars.web1Repo, warehouse("kargo-demo-hotfix")).Tag }}"
+      message: "Hotfix ${{ vars.deployStage }}: ${{ imageFrom(vars.web1Repo, warehouse('kargo-demo-hotfix')).Tag }}"
 
   - uses: git-push
     config:

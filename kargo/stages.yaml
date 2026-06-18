@@ -9,7 +9,7 @@ spec:
   requestedFreight:
   - origin:
       kind: Warehouse
-      name: kargo-demo
+      name: kargo-demo-dev
     sources:
       direct: true
   promotionTemplate:
@@ -30,10 +30,9 @@ spec:
   requestedFreight:
   - origin:
       kind: Warehouse
-      name: kargo-demo
+      name: kargo-demo-release
     sources:
-      stages:
-      - dev
+      direct: true
   promotionTemplate:
     spec:
       steps:
@@ -52,7 +51,7 @@ spec:
   requestedFreight:
   - origin:
       kind: Warehouse
-      name: kargo-demo
+      name: kargo-demo-release
     sources:
       stages:
       - acc

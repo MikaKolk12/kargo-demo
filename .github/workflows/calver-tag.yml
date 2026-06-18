@@ -67,19 +67,3 @@ jobs:
         echo "Created tag ${CALVER} in kargo-demo-2 at ${SHA} (from image tag ${{ inputs.imageTag }})"
       env:
         GH_TOKEN: ${{ secrets.CALVER_PAT }}
-
-    - name: Set Kargo freight alias
-      if: ${{ secrets.KUBECONFIG_DATA != '' }}
-      run: |
-        echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > /tmp/kubeconfig
-        export KUBECONFIG=/tmp/kubeconfig
-        SHA_TAG="${{ inputs.imageTag }}"
-        CALVER="${{ steps.calver.outputs.value }}"
-        FREIGHT_NAME=$(kubectl get freight -n kargo-demo -o json | \
-          jq -r ".items[] | select(.spec.images[]? | select(.repoURL == \"ghcr.io/${{ steps.owner.outputs.value }}/web1\" and .tag == \"$SHA_TAG\")) | .metadata.name" | head -1)
-        if [ -n "$FREIGHT_NAME" ]; then
-          kubectl label freight "$FREIGHT_NAME" -n kargo-demo "kargo.akuity.io/alias=$CALVER" --overwrite
-          echo "Set alias $CALVER on freight $FREIGHT_NAME"
-        else
-          echo "Warning: no freight found for $SHA_TAG — set alias manually in the Kargo UI"
-        fi

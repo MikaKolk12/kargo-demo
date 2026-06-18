@@ -56,10 +56,8 @@ jobs:
     - name: Create release tag in kargo-demo-2
       run: |
         CALVER="${{ steps.calver.outputs.value }}"
-        # Extract the 7-char SHA from the image tag (sha-abc1234 → abc1234)
         SHORT_SHA="${{ inputs.imageTag }}"
         SHORT_SHA="${SHORT_SHA#sha-}"
-        # Resolve the full commit SHA from the short SHA
         SHA=$(gh api "repos/${{ github.repository_owner }}/kargo-demo-2/commits/${SHORT_SHA}" \
           --jq '.sha')
         gh api "repos/${{ github.repository_owner }}/kargo-demo-2/git/refs" \
@@ -69,3 +67,19 @@ jobs:
         echo "Created tag ${CALVER} in kargo-demo-2 at ${SHA} (from image tag ${{ inputs.imageTag }})"
       env:
         GH_TOKEN: ${{ secrets.CALVER_PAT }}
+
+    - name: Set Kargo freight alias
+      if: ${{ secrets.KUBECONFIG_DATA != '' }}
+      run: |
+        echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > /tmp/kubeconfig
+        export KUBECONFIG=/tmp/kubeconfig
+        SHA_TAG="${{ inputs.imageTag }}"
+        CALVER="${{ steps.calver.outputs.value }}"
+        FREIGHT_NAME=$(kubectl get freight -n kargo-demo -o json | \
+          jq -r ".items[] | select(.spec.images[]? | select(.repoURL == \"ghcr.io/${{ steps.owner.outputs.value }}/web1\" and .tag == \"$SHA_TAG\")) | .metadata.name" | head -1)
+        if [ -n "$FREIGHT_NAME" ]; then
+          kubectl label freight "$FREIGHT_NAME" -n kargo-demo "kargo.akuity.io/alias=$CALVER" --overwrite
+          echo "Set alias $CALVER on freight $FREIGHT_NAME"
+        else
+          echo "Warning: no freight found for $SHA_TAG — set alias manually in the Kargo UI"
+        fi

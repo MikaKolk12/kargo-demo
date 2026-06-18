@@ -8,13 +8,16 @@ spec:
   - list:
       elements:
       - stage: dev
+        authorizedStage: kargo-demo:dev
       - stage: acc
+        authorizedStage: kargo-demo:*
       - stage: prod
+        authorizedStage: kargo-demo:*
   template:
     metadata:
       name: kargo-demo-{{stage}}
       annotations:
-        kargo.akuity.io/authorized-stage: kargo-demo:{{stage}}
+        kargo.akuity.io/authorized-stage: "{{authorizedStage}}"
     spec:
       project: default
       source:

@@ -34,11 +34,6 @@ spec:
     sources:
       stages:
       - dev
-  - origin:
-      kind: Warehouse
-      name: kargo-demo-hotfix
-    sources:
-      direct: true
   promotionTemplate:
     spec:
       steps:
@@ -61,15 +56,58 @@ spec:
     sources:
       stages:
       - acc
-  - origin:
-      kind: Warehouse
-      name: kargo-demo-hotfix
-    sources:
-      stages:
-      - acc
   promotionTemplate:
     spec:
       steps:
       - task:
           name: demo-promo-process
+        as: promo-process
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: hotfix-acc
+  namespace: kargo-demo
+  annotations:
+    kargo.akuity.io/color: yellow
+spec:
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: kargo-demo-hotfix
+    sources:
+      direct: true
+  promotionTemplate:
+    spec:
+      vars:
+      - name: deployStage
+        value: acc
+      steps:
+      - task:
+          name: hotfix-promo-process
+        as: promo-process
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: hotfix-prod
+  namespace: kargo-demo
+  annotations:
+    kargo.akuity.io/color: red
+spec:
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: kargo-demo-hotfix
+    sources:
+      stages:
+      - hotfix-acc
+  promotionTemplate:
+    spec:
+      vars:
+      - name: deployStage
+        value: prod
+      steps:
+      - task:
+          name: hotfix-promo-process
         as: promo-process

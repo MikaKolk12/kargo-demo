@@ -1,0 +1,61 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: PromotionTask
+metadata:
+  name: hotfix-promo-process
+  namespace: kargo-demo
+spec:
+  vars:
+  - name: gitopsRepo
+    value: https://github.com/MikaKolk12/kargo-demo
+  - name: web1Repo
+    value: ghcr.io/mikakolk12/web1
+  - name: web2Repo
+    value: ghcr.io/mikakolk12/web2
+  - name: deployStage
+    value: acc
+  steps:
+  - uses: git-clone
+    config:
+      repoURL: ${{ vars.gitopsRepo }}
+      checkout:
+      - branch: main
+        path: ./src
+      - branch: stage/${{ vars.deployStage }}
+        create: true
+        path: ./out
+
+  - uses: git-clear
+    config:
+      path: ./out
+
+  - uses: kustomize-set-image
+    config:
+      path: ./src/stages/${{ vars.deployStage }}
+      images:
+      - image: ${{ vars.web1Repo }}
+        tag: ${{ imageFrom(vars.web1Repo, warehouse("kargo-demo-hotfix")).Tag }}
+      - image: ${{ vars.web2Repo }}
+        tag: ${{ imageFrom(vars.web2Repo, warehouse("kargo-demo-hotfix")).Tag }}
+
+  - uses: kustomize-build
+    config:
+      path: ./src/stages/${{ vars.deployStage }}
+      outPath: ./out
+
+  - as: commit
+    uses: git-commit
+    config:
+      path: ./out
+      message: "Hotfix ${{ vars.deployStage }}: ${{ imageFrom(vars.web1Repo, warehouse("kargo-demo-hotfix")).Tag }}"
+
+  - uses: git-push
+    config:
+      path: ./out
+
+  - uses: argocd-update
+    config:
+      apps:
+      - name: kargo-demo-${{ vars.deployStage }}
+        sources:
+        - repoURL: ${{ vars.gitopsRepo }}
+          desiredRevision: ${{ task.outputs.commit.commit }}
